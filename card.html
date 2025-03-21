@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HoloCards - Interactive Flashcards</title>
+  <style>
+    :root {
+      --primary: #00e5ff;
+      --secondary: #b400ff;
+      --bg-dark: #0a0a1a;
+      --bg-light: #1a1a2e;
+      --text-light: #ffffff;
+      --text-glow: 0 0 10px rgba(0, 229, 255, 0.8);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background: var(--bg-dark);
+      color: var(--text-light);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(10, 10, 26, 0.8);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+      position: relative;
+      z-index: 10;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: var(--text-glow);
+    }
+    
+    .menu-btn {
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+    
+    .menu-btn:hover {
+      transform: scale(1.1);
+      text-shadow: var(--text-glow);
+    }
+    
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      perspective: 1000px;
+      padding: 1rem;
+      position: relative;
+    }
+    
+    .cards-container {
+      width: 100%;
+      max-width: 600px;
+      height: 300px;
+      position: relative;
+      transform-style: preserve-3d;
+      margin: 0 auto;
+    }
+    
+    .card {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: transform 0.6s;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+    }
+    
+    .card.flipped {
+      transform: rotateY(180deg);
+    }
+    
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      border-radius: 15px;
+      background: linear-gradient(145deg, var(--bg-light), var(--bg-dark));
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      text-align: center;
+      overflow: auto;
+    }
+    
+    .card-front {
+      transform: rotateY(0deg);
+    }
+    
+    .card-back {
+      transform: rotateY(180deg);
+    }
+    
+    .card-content {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      word-wrap: break-word;
+    }
+    
+    .side-label {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      font-size: 0.8rem;
+      opacity: 0.7;
+      color: var(--primary);
+    }
+    
+    .holographic-effect {
+      pointer-events: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(125deg, 
+        rgba(255,255,255,0) 0%, 
+        rgba(0,229,255,0.1) 25%, 
+        rgba(180,0,255,0.1) 50%, 
+        rgba(255,255,255,0) 100%);
+      background-size: 200% 200%;
+      animation: holographic 5s ease infinite;
+      border-radius: 15px;
+      opacity: 0.5;
+    }
+    
+    @keyframes holographic {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .nav-btn {
+      background: rgba(26, 26, 46, 0.8);
+      border: 1px solid rgba(0, 229, 255, 0.5);
+      color: var(--primary);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+      backdrop-filter: blur(5px);
+    }
+    
+    .nav-btn:hover {
+      background: rgba(0, 229, 255, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+    }
+    
+    .menu {
+      position: fixed;
+      top: 0;
+      right: -300px;
+      width: 300px;
+      height: 100%;
+      background: rgba(10, 10, 26, 0.95);
+      backdrop-filter: blur(10px);
+      border-left: 1px solid rgba(0, 229, 255, 0.3);
+      transition: right 0.3s;
+      z-index: 100;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    
+    .menu.open {
+      right: 0;
+    }
+    
+    .menu-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    
+    .menu-item {
+      padding: 1rem;
+      margin: 0.5rem 0;
+      background: rgba(26, 26, 46, 0.8);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+    
+    .menu-item:hover {
+      background: rgba(0, 229, 255, 0.2);
+      transform: translateX(-5px);
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+    }
+    
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 99;
+      display: none;
+    }
+    
+    .overlay.show {
+      display: block;
+    }
+    
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      width: 90%;
+      max-width: 600px;
+      background: var(--bg-light);
+      border-radius: 15px;
+      border: 1px solid rgba(0, 229, 255, 0.5);
+      padding: 2rem;
+      z-index: 101;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .modal.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+      padding-bottom: 1rem;
+    }
+    
+    .modal-title {
+      font-size: 1.5rem;
+      color: var(--primary);
+      text-shadow: var(--text-glow);
+    }
+    
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    
+    .card-list {
+      margin: 1rem 0;
+    }
+    
+    .card-item {
+      background: rgba(26, 26, 46, 0.8);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s;
+    }
+    
+    .card-item:hover {
+      background: rgba(0, 229, 255, 0.1);
+      transform: translateX(5px);
+    }
+    
+    .card-text {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-right: 1rem;
+    }
+    
+    .card-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .card-btn {
+      background: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      border-radius: 5px;
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .card-btn:hover {
+      background: var(--primary);
+      color: var(--bg-dark);
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+    }
+    
+    .form-input, .form-textarea {
+      width: 100%;
+      padding: 0.8rem;
+      background: rgba(26, 26, 46, 0.8);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      border-radius: 8px;
+      color: var(--text-light);
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+    
+    .form-textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    .form-input:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+    }
+    
+    .form-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .form-btn {
+      padding: 0.7rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: bold;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border: none;
+      color: var(--text-light);
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(0, 229, 255, 0.1);
+    }
+    
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .progress-wrapper {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      max-width: 400px;
+      background: rgba(26, 26, 46, 0.8);
+      border-radius: 20px;
+      padding: 0.3rem;
+      border: 1px solid rgba(0, 229, 255, 0.3);
+    }
+    
+    .progress-inner {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--text-light);
+      font-size: 0.8rem;
+      position: relative;
+      z-index: 1;
+      padding: 0.3rem 0;
+    }
+    
+    .progress-bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 20px;
+      transition: width 0.3s;
+      opacity: 0.5;
+      z-index: 0;
+    }
+    
+    .add-new-btn {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      color: var(--text-light);
+      border: none;
+      font-size: 2rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+      transition: all 0.3s;
+      z-index: 10;
+    }
+    
+    .add-new-btn:hover {
+      transform: rotate(90deg) scale(1.1);
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      .cards-container {
+        height: 250px;
+      }
+      
+      .card-content {
+        font-size: 1.2rem;
+      }
+      
+      .controls {
+        margin-top: 1rem;
+      }
+      
+      .nav-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+      }
+      
+      .modal {
+        width: 95%;
+        padding: 1.5rem;
+      }
+      
+      .form-btn {
+        padding: 0.6rem 1.2rem;
+      }
+      
+      .add-new-btn {
+        width: 50px;
+        height: 50px;
+        bottom: 1.5rem;
+        right: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+  
+  <header>
+    <div class="logo">HoloCards</div>
+    <button class="menu-btn" id="menuBtn">☰</button>
+  </header>
+  
+  <main>
+    <div class="cards-container">
+      <div class="card" id="currentCard">
+        <div class="card-face card-front">
+          <div class="card-content" id="questionContent">What is the capital of France?</div>
+          <div class="side-label">Question (tap to flip)</div>
+          <div class="holographic-effect"></div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-content" id="answerContent">Paris</div>
+          <div class="side-label">Answer (tap to flip)</div>
+          <div class="holographic-effect"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <button class="nav-btn" id="prevBtn">Previous</button>
+      <button class="nav-btn" id="nextBtn">Next</button>
+    </div>
+    
+    <div class="progress-wrapper">
+      <div class="progress-inner">Card <span id="currentIndex">1</span> of <span id="totalCards">5</span></div>
+      <div class="progress-bar" id="progressBar" style="width: 20%;"></div>
+    </div>
+  </main>
+  
+  <button class="add-new-btn" id="quickAddBtn">+</button>
+  
+  <div class="menu" id="menu">
+    <button class="menu-close" id="menuClose">×</button>
+    <h2 style="margin: 1rem 0; text-align: center; color: var(--primary);">Menu</h2>
+    <div class="menu-item" id="editCardsBtn">📝 Edit Cards</div>
+    <div class="menu-item" id="shuffleBtn">🔀 Shuffle Cards</div>
+    <div class="menu-item" id="exportBtn">💾 Export Cards</div>
+    <div class="menu-item" id="importBtn">📂 Import Cards</div>
+    <div class="menu-item" id="settingsBtn">⚙️ Settings</div>
+    <div class="menu-item" id="helpBtn">❓ Help</div>
+  </div>
+  
+  <div class="overlay" id="overlay"></div>
+  
+  <div class="modal" id="editCardsModal">
+    <div class="modal-header">
+      <h2 class="modal-title">Edit Cards</h2>
+      <button class="modal-close" id="editCardsClose">×</button>
+    </div>
+    
+    <div class="card-list" id="cardList">
+      <!-- Card items will be generated here -->
+    </div>
+    
+    <button class="form-btn btn-primary" id="addCardBtn" style="width: 100%;">+ Add New Card</button>
+  </div>
+  
+  <div class="modal" id="cardFormModal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="cardFormTitle">Add New Card</h2>
+      <button class="modal-close" id="cardFormClose">×</button>
+    </div>
+    
+    <div class="form-group">
+      <label class="form-label" for="questionInput">Question</label>
+      <textarea class="form-textarea" id="questionInput" placeholder="Enter question..."></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label class="form-label" for="answerInput">Answer</label>
+      <textarea class="form-textarea" id="answerInput" placeholder="Enter answer..."></textarea>
+    </div>
+    
+    <div class="form-buttons">
+      <button class="form-btn btn-secondary" id="cancelCardBtn">Cancel</button>
+      <button class="form-btn btn-primary" id="saveCardBtn">Save Card</button>
+    </div>
+  </div>
+  
+  <div class="modal" id="quickAddModal">
+    <div class="modal-header">
+      <h2 class="modal-title">Quick Add Card</h2>
+      <button class="modal-close" id="quickAddClose">×</button>
+    </div>
+    
+    <div class="form-group">
+      <label class="form-label" for="quickQuestionInput">Question</label>
+      <textarea class="form-textarea" id="quickQuestionInput" placeholder="Enter question..."></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label class="form-label" for="quickAnswerInput">Answer (optional)</label>
+      <textarea class="form-textarea" id="quickAnswerInput" placeholder="Enter answer (optional)..."></textarea>
+    </div>
+    
+    <div class="form-buttons">
+      <button class="form-btn btn-secondary" id="cancelQuickAddBtn">Cancel</button>
+      <button class="form-btn btn-primary" id="saveQuickAddBtn">Add Card</button>
+    </div>
+  </div>
+  
+  <script>
+    // Sample flashcards data
+    let flashcards = [
+      { question: "What is the capital of France?", answer: "Paris" },
+      { question: "What is the chemical symbol for gold?", answer: "Au" },
+      { question: "What is the tallest mountain in the world?", answer: "Mount Everest" },
+      { question: "Who wrote 'Romeo and Juliet'?", answer: "William Shakespeare" },
+      { question: "What is the largest planet in our solar system?", answer: "Jupiter" }
+    ];
+    
+    let currentCardIndex = 0;
+    let editingCardIndex = -1;
+    
+    // DOM elements
+    const card = document.getElementById('currentCard');
+    const questionContent = document.getElementById('questionContent');
+    const answerContent = document.getElementById('answerContent');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const currentIndexEl = document.getElementById('currentIndex');
+    const totalCardsEl = document.getElementById('totalCards');
+    const progressBar = document.getElementById('progressBar');
+    
+    // Menu elements
+    const menuBtn = document.getElementById('menuBtn');
+    const menu = document.getElementById('menu');
+    const menuClose = document.getElementById('menuClose');
+    const overlay = document.getElementById('overlay');
+    const editCardsBtn = document.getElementById('editCardsBtn');
+    const editCardsModal = document.getElementById('editCardsModal');
+    const editCardsClose = document.getElementById('editCardsClose');
+    const cardList = document.getElementById('cardList');
+    const addCardBtn = document.getElementById('addCardBtn');
+    const cardFormModal = document.getElementById('cardFormModal');
+    const cardFormClose = document.getElementById('cardFormClose');
+    const cardFormTitle = document.getElementById('cardFormTitle');
+    const questionInput = document.getElementById('questionInput');
+    const answerInput = document.getElementById('answerInput');
+    const saveCardBtn = document.getElementById('saveCardBtn');
+    const cancelCardBtn = document.getElementById('cancelCardBtn');
+    const quickAddBtn = document.getElementById('quickAddBtn');
+    const quickAddModal = document.getElementById('quickAddModal');
+    const quickAddClose = document.getElementById('quickAddClose');
+    const quickQuestionInput = document.getElementById('quickQuestionInput');
+    const quickAnswerInput = document.getElementById('quickAnswerInput');
+    const saveQuickAddBtn = document.getElementById('saveQuickAddBtn');
+    const cancelQuickAddBtn = document.getElementById('cancelQuickAddBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    
+    // Initialize
+    function init() {
+      updateCardDisplay();
+      setupListeners();
+      createParticles();
+      loadCardsFromStorage();
+    }
+    
+    // Update card display
+    function updateCardDisplay() {
+      if (flashcards.length === 0) {
+        questionContent.textContent = "No cards yet! Add some cards to get started.";
+        answerContent.textContent = "Click the + button to add your first card.";
+        currentIndexEl.textContent = "0";
+        totalCardsEl.textContent = "0";
+        progressBar.style.width = "0%";
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        return;
+      }
+      
+      const currentCard = flashcards[currentCardIndex];
+      questionContent.textContent = currentCard.question;
+      answerContent.textContent = currentCard.answer;
+      
+      // Update progress
+      currentIndexEl.textContent = (currentCardIndex + 1).toString();
+      totalCardsEl.textContent = flashcards.length.toString();
+      const progressPercent = ((currentCardIndex + 1) / flashcards.length) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+      
+      // Reset card to front face
+      card.classList.remove('flipped');
+    }
+    
+    // Set up event listeners
+    function setupListeners() {
+      // Card flip
+      card.addEventListener('click', () => {
+        card.classList.toggle('flipped');
+      });
+      
+      // Navigation
+      prevBtn.addEventListener('click', prevCard);
+      nextBtn.addEventListener('click', nextCard);
+      
+      // Menu toggle
+      menuBtn.addEventListener('click', openMenu);
+      menuClose.addEventListener('click', closeMenu);
+      overlay.addEventListener('click', closeAllModals);
+      
+      // Edit cards
+      editCardsBtn.addEventListener('click', openEditCardsModal);
+      editCardsClose.addEventListener('click', closeEditCardsModal);
+      addCardBtn.addEventListener('click', openAddCardForm);
+      cardFormClose.addEventListener('click', closeCardForm);
+      saveCardBtn.addEventListener('click', saveCard);
+      cancelCardBtn.addEventListener('click', closeCardForm);
+      
+      // Quick add
+      quickAddBtn.addEventListener('click', openQuickAddModal);
+      quickAddClose.addEventListener('click', closeQuickAddModal);
+      saveQuickAddBtn.addEventListener('click', saveQuickAddCard);
+      cancelQuickAddBtn.addEventListener('click', closeQuickAddModal);
+      
+      // Shuffle
+      shuffleBtn.addEventListener('click', shuffleCards);
+      
+      // Keyboard navigation
+      document.addEventListener('keydown', handleKeyPress);
+    }
+    
+    // Navigate to previous card
+    function prevCard() {
+      if (currentCardIndex > 0) {
+        currentCardIndex--;
+        updateCardDisplay();
+      }
+    }
+    
+    // Navigate to next card
+    function nextCard() {
+      if (currentCardIndex < flashcards.length - 1) {
+        currentCardIndex++;
+        updateCardDisplay();
+      }
+    }
+    
+    // Open menu
+    function openMenu() {
+      menu.classList.add('open');
+      overlay.classList.add('show');
+    }
+    
+    // Close menu
+    function closeMenu() {
+      menu.classList.remove('open');
+      if (!editCardsModal.classList.contains('show') && 
+          !cardFormModal.classList.contains('show') &&
+          !quickAddModal.classList.contains('show')) {
+        overlay.classList.remove('show');
+      }
+    }
+    
+    // Close all modals
+    function closeAllModals() {
+      closeMenu();
+      closeEditCardsModal();
+      closeCardForm();
+      closeQuickAddModal();
+      overlay.classList.remove('show');
+    }
+    
+    // Open edit cards modal
+    function openEditCardsModal() {
+      refreshCardList();
+      editCardsModal.classList.add('show');
+      overlay.classList.add('show');
+      closeMenu();
+    }
+    
+    // Close edit cards modal
+    function closeEditCardsModal() {
+      editCardsModal.classList.remove('show');
+      if (!menu.classList.contains('open') && 
+          !cardFormModal.classList.contains('show') &&
+          !quickAddModal.classList.contains('show')) {
+        overlay.classList.remove('show');
+      }
+    }
+    
+    // Refresh card list in edit modal
+    function refreshCardList() {
+      cardList.innerHTML = '';
+      
+      if (flashcards.length === 0) {
+        const emptyMsg = document.createElement('p');
+        emptyMsg.textContent = 'No cards yet. Add some cards to get started!';
+        emptyMsg.style.textAlign = 'center';
+        emptyMsg.style.padding = '1rem';
+        emptyMsg.style.color = 'rgba(255, 255, 255, 0.7)';
+        cardList.appendChild(emptyMsg);
+        return;
+      }
+      
+      flashcards.forEach((card, index) => {
+        const cardItem = document.createElement('div');
+        cardItem.className = 'card-item';
+        
+        const cardText = document.createElement('div');
+        cardText.className = 'card-text';
+        cardText.textContent = card.question;
+        
+        const cardActions = document.createElement('div');
+        cardActions.className = 'card-actions';
+        
+        const editBtn = document.createElement('button');
+        editBtn.className = 'card-btn';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', () => {
+          openEditCardForm(index);
+        });
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'card-btn';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.addEventListener('click', () => {
+          deleteCard(index);
+        });
+        
+        cardActions.appendChild(editBtn);
+        cardActions.appendChild(deleteBtn);
+        
+        cardItem.appendChild(cardText);
+        cardItem.appendChild(cardActions);
+        
+        cardList.appendChild(cardItem);
+      });
+    }
+    
+    // Open add card form
+    function openAddCardForm() {
+      cardFormTitle.textContent = 'Add New Card';
+      questionInput.value = '';
+      answerInput.value = '';
+      editingCardIndex = -1;
+      
+      cardFormModal.classList.add('show');
+      editCardsModal.classList.remove('show');
+    }
+    
+    // Open edit card form
+    function openEditCardForm(index) {
+      const card = flashcards[index];
+      cardFormTitle.textContent = 'Edit Card';
+      questionInput.value = card.question;
+      answerInput.value = card.answer;
+      editingCardIndex = index;
+      
+      cardFormModal.classList.add('show');
+      editCardsModal.classList.remove('show');
+    }
+    
+    // Close card form
+    function closeCardForm() {
+      cardFormModal.classList.remove('show');
+      editCardsModal.classList.add('show');
+    }
+    
+    // Save card
+    function saveCard() {
+      const question = questionInput.value.trim();
+      const answer = answerInput.value.trim();
+      
+      if (!question) {
+        alert('Please enter a question.');
+        return;
+      }
+      
+      if (editingCardIndex >= 0) {
+        // Editing existing card
+        flashcards[editingCardIndex] = { question, answer };
+      } else {
+        // Adding new card
+        flashcards.push({ question, answer });
+      }
+      
+      // Save to localStorage
+      saveCardsToStorage();
+      
+      // Update display
+      refreshCardList();
+      updateCardDisplay();
+      
+      // Close the form
+      closeCardForm();
+    }
+    
+    // Delete card
+    function deleteCard(index) {
+      if (confirm('Are you sure you want to delete this card?')) {
+        flashcards.splice(index, 1);
+        saveCardsToStorage();
+        refreshCardList();
+        updateCardDisplay();
+        
+        // Adjust current card index if necessary
+        if (currentCardIndex >= flashcards.length) {
+          currentCardIndex = Math.max(0, flashcards.length - 1);
+        }
+      }
+    }
+    
+    // Open quick add modal
+    function openQuickAddModal() {
+      quickQuestionInput.value = '';
+      quickAnswerInput.value = '';
+      quickAddModal.classList.add('show');
+      overlay.classList.add('show');
+    }
+    
+    // Close quick add modal
+    function closeQuickAddModal() {
+      quickAddModal.classList.remove('show');
+      if (!menu.classList.contains('open') && 
+          !editCardsModal.classList.contains('show') &&
+          !cardFormModal.classList.contains('show')) {
+        overlay.classList.remove('show');
+      }
+    }
+    
+    // Save quick add card
+    function saveQuickAddCard() {
+      const question = quickQuestionInput.value.trim();
+      const answer = quickAnswerInput.value.trim();
+      
+      if (!question) {
+        alert('Please enter a question.');
+        return;
+      }
+      
+      flashcards.push({ question, answer });
+      saveCardsToStorage();
+      updateCardDisplay();
+      closeQuickAddModal();
+    }
+    
+    // Shuffle cards
+    function shuffleCards() {
+      for (let i = flashcards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [flashcards[i], flashcards[j]] = [flashcards[j], flashcards[i]];
+      }
+      currentCardIndex = 0;
+      updateCardDisplay();
+      saveCardsToStorage();
+    }
+    
+    // Handle keyboard navigation
+    function handleKeyPress(e) {
+      switch (e.key) {
+        case 'ArrowLeft':
+          prevCard();
+          break;
+        case 'ArrowRight':
+          nextCard();
+          break;
+        case ' ':
+          card.classList.toggle('flipped');
+          break;
+      }
+    }
+    
+    // Save cards to localStorage
+    function saveCardsToStorage() {
+      localStorage.setItem('flashcards', JSON.stringify(flashcards));
+    }
+    
+    // Load cards from localStorage
+    function loadCardsFromStorage() {
+      const storedCards = localStorage.getItem('flashcards');
+      if (storedCards) {
+        flashcards = JSON.parse(storedCards);
+        updateCardDisplay();
+      }
+    }
+    
+    // Create particles effect
+    function createParticles() {
+      const particlesEl = document.getElementById('particles');
+      const particleCount = 100;
+      
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.position = 'absolute';
+        particle.style.width = '2px';
+        particle.style.height = '2px';
+        particle.style.backgroundColor = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.8)`;
+        particle.style.borderRadius = '50%';
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.top = `${Math.random() * 100}%`;
+        particle.style.animation = `float ${Math.random() * 10 + 5}s infinite ease-in-out`;
+        particlesEl.appendChild(particle);
+      }
+    }
+    
+    // Initialize the app
+    init();
+  </script>
+</body>
+</html>
